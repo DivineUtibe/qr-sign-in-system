@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign-In Form</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Sign-In Form</h1>
+    <form action="{{ url_for('sign_in') }}" method="post">
+        <label for="name">Select Your Name:</label>
+        <select name="name" id="name">
+            {% for employee in employees %}
+                <option value="{{ employee['name'] }}">{{ employee['name'] }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Sign In</button>
+    </form>
+    <a href="{{ url_for('index') }}">Back to Home</a>
+</body>
+</html>

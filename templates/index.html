@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Employee Management</h1>
+    
+    <h2>Employees</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Department</th>
+                <th>Time Logged</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in employees %}
+                <tr>
+                    <td>{{ employee.name }}</td>
+                    <td>{{ employee.department }}</td>
+                    <td>{{ employee.time_logged }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <h2>Generate Common QR Code</h2>
+    <form action="{{ url_for('generate_qr') }}" method="post">
+        <button type="submit">Generate QR Code</button>
+    </form>
+    
+    <img src="{{ url_for('static', filename='common_sign_in.png') }}" alt="Common QR Code" />
+    
+    <h2>Add Employee</h2>
+    <form action="{{ url_for('generate_qr') }}" method="post">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required>
+        <label for="department">Department:</label>
+        <input type="text" id="department" name="department">
+        <button type="submit">Add Employee & Generate QR Code</button>
+    </form>
+    
+    <a href="{{ url_for('sign_in_data') }}">View Sign-In Data</a>
+</body>
+</html>
