@@ -64,13 +64,14 @@ def sign_in():
 def generate_qr():
     try:
         # Construct URL for the common sign-in page
-        sign_in_url = "https://qr-sign-in-system.onrender.com/sign_in_form"  # Updated for Render
+        sign_in_url = "https://qr-sign-in-system.onrender.com/sign_in_form"  # Update to your deployed URL
 
         if request.method == 'POST':
             # Generate QR code
             img = qrcode.make(sign_in_url)
-            img.save(f'static/common_sign_in.png')
-            flash('Common QR code generated!')
+            qr_path = os.path.join('static', 'common_sign_in.png')
+            img.save(qr_path)
+            flash(f'Common QR code generated and saved to {qr_path}!')
         else:
             flash('Use POST to generate the QR code.')
         
