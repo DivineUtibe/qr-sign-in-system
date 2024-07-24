@@ -64,7 +64,7 @@ def sign_in():
 def generate_qr():
     try:
         # Construct URL for the common sign-in page
-        sign_in_url = "http://example.herokuapp.com/sign_in_form"  # Update after deployment
+        sign_in_url = "https://qr-sign-in-system.onrender.com/sign_in_form"  # Updated for Render
 
         if request.method == 'POST':
             # Generate QR code
@@ -94,5 +94,5 @@ def sign_in_data():
     return render_template('sign_in_data.html', sign_ins=sign_ins)
 
 if __name__ == '__main__':
-    # Remove 'port=5000' if deploying on Heroku; Heroku assigns a dynamic port
+    # Remove 'port=5000' if deploying on Render; Render assigns a dynamic port
     app.run(debug=True, host='0.0.0.0')
