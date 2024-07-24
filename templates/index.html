@@ -16,6 +16,7 @@
                 <th>Name</th>
                 <th>Department</th>
                 <th>Time Logged</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
@@ -24,6 +25,12 @@
                     <td>{{ employee.name }}</td>
                     <td>{{ employee.department }}</td>
                     <td>{{ employee.time_logged }}</td>
+                    <td>
+                        <!-- Form to delete employee -->
+                        <form action="{{ url_for('delete_employee', name=employee.name) }}" method="post" style="display:inline;">
+                            <button type="submit">Delete</button>
+                        </form>
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>
@@ -34,15 +41,18 @@
         <button type="submit">Generate QR Code</button>
     </form>
     
+    <!-- Display QR code if it exists -->
+    {% if 'common_sign_in.png' in static_files %}
     <img src="{{ url_for('static', filename='common_sign_in.png') }}" alt="Common QR Code" />
+    {% endif %}
     
     <h2>Add Employee</h2>
-    <form action="{{ url_for('generate_qr') }}" method="post">
+    <form action="{{ url_for('add_employee') }}" method="post">
         <label for="name">Name:</label>
         <input type="text" id="name" name="name" required>
         <label for="department">Department:</label>
         <input type="text" id="department" name="department">
-        <button type="submit">Add Employee & Generate QR Code</button>
+        <button type="submit">Add Employee</button>
     </form>
     
     <a href="{{ url_for('sign_in_data') }}">View Sign-In Data</a>

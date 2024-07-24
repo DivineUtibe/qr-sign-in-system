@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 import sqlite3
 import qrcode
 from datetime import datetime
-import socket
 import os
 
 app = Flask(__name__)
@@ -93,6 +92,35 @@ def sign_in_data():
     sign_ins = conn.execute('SELECT * FROM sign_ins').fetchall()
     conn.close()
     return render_template('sign_in_data.html', sign_ins=sign_ins)
+
+@app.route('/add_employee', methods=['GET', 'POST'])
+def add_employee():
+    if request.method == 'POST':
+        try:
+            name = request.form['name']
+            # Add the new employee to the database
+            conn = get_db_connection()
+            conn.execute('INSERT INTO employees (name) VALUES (?)', (name,))
+            conn.commit()
+            conn.close()
+            flash(f'Employee {name} added successfully!')
+        except Exception as e:
+            flash(f'Error occurred: {str(e)}', 'error')
+        return redirect(url_for('index'))
+
+    return render_template('add_employee.html')
+
+@app.route('/delete_employee/<name>', methods=['POST'])
+def delete_employee(name):
+    try:
+        conn = get_db_connection()
+        conn.execute('DELETE FROM employees WHERE name = ?', (name,))
+        conn.commit()
+        conn.close()
+        flash(f'Employee {name} removed successfully!')
+    except Exception as e:
+        flash(f'Error occurred: {str(e)}', 'error')
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     # Remove 'port=5000' if deploying on Render; Render assigns a dynamic port
