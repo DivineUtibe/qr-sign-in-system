@@ -110,14 +110,15 @@ def add_employee():
 
     return render_template('add_employee.html')
 
-@app.route('/delete_employee/<name>', methods=['POST'])
-def delete_employee(name):
+@app.route('/delete_employee', methods=['POST'])
+def delete_employee():
     try:
+        name = request.form['name']
         conn = get_db_connection()
         conn.execute('DELETE FROM employees WHERE name = ?', (name,))
         conn.commit()
         conn.close()
-        flash(f'Employee {name} removed successfully!')
+        flash(f'Employee {name} deleted successfully!')
     except Exception as e:
         flash(f'Error occurred: {str(e)}', 'error')
     return redirect(url_for('index'))
