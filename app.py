@@ -3,11 +3,13 @@ import sqlite3
 import qrcode
 from datetime import datetime
 import os
+import pytz
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
 
 DATABASE = 'database.db'
+LAGOS_TIMEZONE = pytz.timezone('Africa/Lagos')
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
@@ -38,7 +40,7 @@ def sign_in():
             return redirect(url_for('index'))
 
     try:
-        now = datetime.now()
+        now = datetime.now(LAGOS_TIMEZONE)
         date = now.strftime("%Y-%m-%d")
         time = now.strftime("%H:%M:%S")
 
