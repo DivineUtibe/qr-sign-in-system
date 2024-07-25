@@ -9,6 +9,7 @@ MarkupSafe==2.1.5
 packaging==24.1
 pillow==10.4.0
 pypng==0.20220715.0
+pytz==2024.1
 qrcode==7.4.2
 typing_extensions==4.12.2
 Werkzeug==3.0.3
