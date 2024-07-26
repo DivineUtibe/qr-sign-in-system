@@ -1,8 +1,14 @@
 import sqlite3
 
-connection = sqlite3.connect('database.db')
+DATABASE = 'database.db'
 
-with open('schema.sql') as f:
-    connection.executescript(f.read())
+def init_db():
+    connection = sqlite3.connect(DATABASE)
+    
+    with open('schema.sql') as f:
+        connection.executescript(f.read())
+    
+    connection.close()
 
-connection.close()
+if __name__ == '__main__':
+    init_db()

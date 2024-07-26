@@ -12,6 +12,7 @@
         <thead>
             <tr>
                 <th>Name</th>
+                <th>Email</th> <!-- Added Email column -->
                 <th>Date</th>
                 <th>Time</th>
             </tr>
@@ -20,6 +21,7 @@
             {% for sign_in in sign_ins %}
                 <tr>
                     <td>{{ sign_in['name'] }}</td>
+                    <td>{{ sign_in['email'] }}</td> <!-- Display Email -->
                     <td>{{ sign_in['date'] }}</td>
                     <td>{{ sign_in['time'] }}</td>
                 </tr>

@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import sqlite3
 import qrcode
 from datetime import datetime
 import os
 import pytz
+from authlib.integrations.flask_client import OAuth
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
@@ -11,34 +12,73 @@ app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
 DATABASE = 'database.db'
 LAGOS_TIMEZONE = pytz.timezone('Africa/Lagos')
 
+# OAuth Configuration
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    access_token_url='https://accounts.google.com/o/oauth2/token',
+    access_token_params=None,
+    refresh_token_url=None,
+    redirect_uri='https://qr-sign-in-system.onrender.com/oauth2callback',
+    client_kwargs={
+        'scope': 'openid profile email',
+    }
+)
+
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
 
+# Ensure the email column is added to the sign_ins table
+def add_email_column():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('ALTER TABLE sign_ins ADD COLUMN email TEXT')
+    conn.commit()
+    conn.close()
+
+try:
+    add_email_column()
+except sqlite3.OperationalError:
+    pass  # Ignore if the column already exists
+
 @app.route('/')
 def index():
-    conn = get_db_connection()
-    employees = conn.execute('SELECT * FROM employees').fetchall()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        employees = conn.execute('SELECT * FROM employees').fetchall()
+        conn.close()
+    except Exception as e:
+        flash(f'Error occurred while fetching employees: {str(e)}', 'error')
+        return redirect(url_for('index'))
     return render_template('index.html', employees=employees)
 
 @app.route('/sign_in', methods=['GET', 'POST'])
 def sign_in():
+    if 'user' not in session:
+        flash('You must log in first.')
+        return redirect(url_for('login'))
+
+    user_email = session['user']
+    
     if request.method == 'POST':
         try:
             name = request.form['name']
         except Exception as e:
             flash(f'Error occurred: {str(e)}', 'error')
             return redirect(url_for('index'))
-
     elif request.method == 'GET':
         try:
             name = request.args.get('name')
         except Exception as e:
             flash(f'Error occurred: {str(e)}', 'error')
             return redirect(url_for('index'))
-
+    
     try:
         now = datetime.now(LAGOS_TIMEZONE)
         date = now.strftime("%Y-%m-%d")
@@ -46,8 +86,8 @@ def sign_in():
 
         conn = get_db_connection()
 
-        # Insert sign-in record
-        conn.execute('INSERT INTO sign_ins (name, date, time) VALUES (?, ?, ?)', (name, date, time))
+        # Insert sign-in record with email
+        conn.execute('INSERT INTO sign_ins (name, email, date, time) VALUES (?, ?, ?, ?)', (name, user_email, date, time))
         conn.commit()
 
         # Update time_logged for the employee
@@ -64,12 +104,12 @@ def sign_in():
 @app.route('/generate_qr', methods=['POST'])
 def generate_qr():
     try:
-        # Construct URL for the common sign-in page
-        sign_in_url = "https://qr-sign-in-system.onrender.com/sign_in_form"  # Update to your deployed URL
+        # Construct URL for the login page
+        login_url = url_for('login', _external=True)
 
         if request.method == 'POST':
             # Generate QR code
-            img = qrcode.make(sign_in_url)
+            img = qrcode.make(login_url)
             qr_path = os.path.join('static', 'common_sign_in.png')
             img.save(qr_path)
             flash(f'Common QR code generated and saved to {qr_path}!')
@@ -83,16 +123,30 @@ def generate_qr():
 
 @app.route('/sign_in_form')
 def sign_in_form():
-    conn = get_db_connection()
-    employees = conn.execute('SELECT name FROM employees').fetchall()
-    conn.close()
-    return render_template('sign_in_form.html', employees=employees)
+    if 'user' not in session:
+        flash('You must log in first.')
+        return redirect(url_for('login'))
+
+    try:
+        conn = get_db_connection()
+        employees = conn.execute('SELECT name FROM employees').fetchall()
+        conn.close()
+    except Exception as e:
+        flash(f'Error occurred while fetching employees: {str(e)}', 'error')
+        return redirect(url_for('index'))
+    
+    user_email = session['user']
+    return render_template('sign_in_form.html', employees=employees, user_email=user_email)
 
 @app.route('/sign_in_data')
 def sign_in_data():
-    conn = get_db_connection()
-    sign_ins = conn.execute('SELECT * FROM sign_ins').fetchall()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        sign_ins = conn.execute('SELECT * FROM sign_ins').fetchall()
+        conn.close()
+    except Exception as e:
+        flash(f'Error occurred while fetching sign-in data: {str(e)}', 'error')
+        return redirect(url_for('index'))
     return render_template('sign_in_data.html', sign_ins=sign_ins)
 
 @app.route('/add_employee', methods=['GET', 'POST'])
@@ -125,6 +179,34 @@ def delete_employee():
         flash(f'Error occurred: {str(e)}', 'error')
     return redirect(url_for('index'))
 
+@app.route('/login')
+def login():
+    redirect_uri = url_for('authorize', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    flash('You were logged out')
+    return redirect(url_for('index'))
+
+@app.route('/oauth2callback')
+def authorize():
+    token = google.authorize_access_token()
+    if not token:
+        flash('Access denied')
+        return redirect(url_for('index'))
+
+    try:
+        resp = google.get('userinfo')
+        user_info = resp.json()
+        session['user'] = user_info['email']
+        flash('You were successfully logged in as {}'.format(session['user']))
+    except Exception as e:
+        flash(f'An error occurred during the login process: {str(e)}')
+        return redirect(url_for('index'))
+
+    return redirect(url_for('sign_in_form'))
+
 if __name__ == '__main__':
-    # Remove 'port=5000' if deploying on Render; Render assigns a dynamic port
     app.run(debug=True, host='0.0.0.0')
