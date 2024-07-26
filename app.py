@@ -203,8 +203,9 @@ def authorize():
             flash('Access denied')
             return redirect(url_for('index'))
 
-        resp = google.get('userinfo')
-        user_info = resp.json()
+        userinfo_resp = google.get('userinfo')
+        app.logger.info("Userinfo response: %s", userinfo_resp.text)
+        user_info = userinfo_resp.json()
         session['user'] = user_info['email']
         flash('You were successfully logged in as {}'.format(session['user']))
     except Exception as e:
