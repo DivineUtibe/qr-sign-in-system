@@ -196,16 +196,24 @@ def logout():
 
 @app.route('/oauth2callback')
 def authorize():
-    try:
-        token = google.authorize_access_token()
-        app.logger.info("Token received: %s", token)
-        if not token:
-            flash('Access denied')
-            return redirect(url_for('index'))
+    token = google.authorize_access_token()
+    if not token:
+        flash('Access denied')
+        return redirect(url_for('index'))
 
-        userinfo_resp = google.get('userinfo')
-        app.logger.info("Userinfo response: %s", userinfo_resp.text)
-        user_info = userinfo_resp.json()
+    try:
+        # Log the entire token for debugging
+        app.logger.info("Token received: %s", token)
+
+        # Decode the token to inspect claims
+        id_token = token.get('id_token')
+        if id_token:
+            decoded_token = jwt.decode(id_token, key=None)
+            issuer = decoded_token.get('iss')
+            app.logger.info("Issuer Claim (iss): %s", issuer)
+        
+        resp = google.get('userinfo')
+        user_info = resp.json()
         session['user'] = user_info['email']
         flash('You were successfully logged in as {}'.format(session['user']))
     except Exception as e:
