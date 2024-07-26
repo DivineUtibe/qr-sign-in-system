@@ -28,7 +28,9 @@ google = oauth.register(
     redirect_uri='https://qr-sign-in-system.onrender.com/oauth2callback',
     client_kwargs={
         'scope': 'openid profile email',
-    }
+        'token_endpoint_auth_method': 'client_secret_basic'
+    },
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration'
 )
 
 def get_db_connection():
