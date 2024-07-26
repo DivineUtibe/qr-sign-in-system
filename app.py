@@ -196,12 +196,13 @@ def logout():
 
 @app.route('/oauth2callback')
 def authorize():
-    token = google.authorize_access_token()
-    if not token:
-        flash('Access denied')
-        return redirect(url_for('index'))
-
     try:
+        token = google.authorize_access_token()
+        app.logger.info("Token received: %s", token)
+        if not token:
+            flash('Access denied')
+            return redirect(url_for('index'))
+
         resp = google.get('userinfo')
         user_info = resp.json()
         session['user'] = user_info['email']
