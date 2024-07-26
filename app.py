@@ -5,6 +5,8 @@ from datetime import datetime
 import os
 import pytz
 from authlib.integrations.flask_client import OAuth
+import logging
+import traceback
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
@@ -203,6 +205,8 @@ def authorize():
         session['user'] = user_info['email']
         flash('You were successfully logged in as {}'.format(session['user']))
     except Exception as e:
+        app.logger.error("Error during OAuth callback: %s", e)
+        app.logger.error(traceback.format_exc())
         flash(f'An error occurred during the login process: {str(e)}')
         return redirect(url_for('index'))
 
