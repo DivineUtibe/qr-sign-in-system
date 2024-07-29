@@ -7,6 +7,8 @@ import pytz
 from authlib.integrations.flask_client import OAuth
 import logging
 import traceback
+from authlib.oidc.core import claims
+import jwt
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
@@ -32,6 +34,8 @@ google = oauth.register(
     },
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration'
 )
+
+EXPECTED_ISSUER = 'https://accounts.google.com'
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
@@ -208,9 +212,14 @@ def authorize():
         # Decode the token to inspect claims
         id_token = token.get('id_token')
         if id_token:
-            decoded_token = jwt.decode(id_token, key=None)
-            issuer = decoded_token.get('iss')
-            app.logger.info("Issuer Claim (iss): %s", issuer)
+            claims_options = {
+                "iss": {
+                    "values": [EXPECTED_ISSUER]
+                }
+            }
+            state_data = google.get_state_data()
+            userinfo = google.parse_id_token(token, nonce=state_data['nonce'], claims_options=claims_options)
+            app.logger.info("User Info: %s", userinfo)
         
         resp = google.get('userinfo')
         user_info = resp.json()
