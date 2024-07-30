@@ -7,8 +7,8 @@ import pytz
 from authlib.integrations.flask_client import OAuth
 import logging
 import traceback
-from authlib.oidc.core import claims
-import jwt
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
@@ -200,31 +200,32 @@ def logout():
 
 @app.route('/oauth2callback')
 def authorize():
-    token = google.authorize_access_token()
-    if not token:
-        flash('Access denied')
-        return redirect(url_for('index'))
-
     try:
+        token = google.authorize_access_token()
+        if not token:
+            flash('Access denied')
+            return redirect(url_for('index'))
+
         # Log the entire token for debugging
         app.logger.info("Token received: %s", token)
 
-        # Decode the token to inspect claims
-        id_token = token.get('id_token')
-        if id_token:
-            claims_options = {
-                "iss": {
-                    "values": [EXPECTED_ISSUER]
-                }
-            }
-            state_data = google.get_state_data()
-            userinfo = google.parse_id_token(token, nonce=state_data['nonce'], claims_options=claims_options)
-            app.logger.info("User Info: %s", userinfo)
-        
-        resp = google.get('userinfo')
-        user_info = resp.json()
-        session['user'] = user_info['email']
-        flash('You were successfully logged in as {}'.format(session['user']))
+        # Verify the ID token
+        id_token_value = token.get('id_token')
+        if id_token_value:
+            # Verify the ID token
+            request = google_requests.Request()
+            id_info = id_token.verify_oauth2_token(id_token_value, request, os.environ.get('GOOGLE_CLIENT_ID'))
+
+            # Verify the issuer
+            if id_info['iss'] != EXPECTED_ISSUER:
+                raise ValueError('Wrong issuer.')
+
+            # Save the user's email in the session
+            session['user'] = id_info['email']
+            flash('You were successfully logged in as {}'.format(session['user']))
+        else:
+            flash('ID token is missing.')
+
     except Exception as e:
         app.logger.error("Error during OAuth callback: %s", e)
         app.logger.error(traceback.format_exc())
