@@ -201,7 +201,7 @@ def logout():
 @app.route('/oauth2callback')
 def authorize():
     try:
-        token = google.authorize_access_token()
+        token = OAuth.google.authorize_access_token()
         if not token:
             flash('Access denied')
             return redirect(url_for('index'))
